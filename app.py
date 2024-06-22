@@ -40,7 +40,7 @@ def clean_and_combine_transcript(content, interviewer, interviewee):
 
 
 
-st.set_page_config(page_title="Zoom Transcript Cleaner", page_icon=:pencil:, layout="centered")
+st.set_page_config(page_title="Zoom Transcript Cleaner", page_icon=":pencil:", layout="centered")
 st.title('Zoom Transcript Cleaner')
 
 uploaded_file = st.file_uploader("Upload your VTT or TXT file", type=["vtt", "txt"])
