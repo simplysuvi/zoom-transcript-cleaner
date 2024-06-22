@@ -38,7 +38,9 @@ def clean_and_combine_transcript(content, interviewer, interviewee):
     # Combine all responses into a single string
     return '\n\n'.join(combined_responses)
 
-# Streamlit app
+
+
+st.set_page_config(page_title="Zoom Transcript Cleaner", page_icon=:pencil:, layout="centered")
 st.title('Zoom Transcript Cleaner')
 
 uploaded_file = st.file_uploader("Upload your VTT or TXT file", type=["vtt", "txt"])
