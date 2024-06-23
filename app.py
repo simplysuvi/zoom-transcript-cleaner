@@ -63,7 +63,7 @@ if uploaded_file is not None:
         
         with col2:
             with st.expander("**Cleaned Transcript**"):
-                st.write(cleaned_transcript)
+                st.code(cleaned_transcript, language=None)
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
