@@ -55,15 +55,8 @@ if uploaded_file is not None:
         original_transcript = file_content.replace('\r\n', '\n').replace('\r', '\n')
         cleaned_transcript = clean_and_combine_transcript(original_transcript, interviewer, interviewee)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            with st.expander("**Original Transcript**"):
-                st.write(original_transcript)
-        
-        with col2:
-            with st.expander("**Cleaned Transcript**"):
-                st.code(cleaned_transcript, language='textile')
+        with st.expander("**Cleaned Transcript**"):
+            st.code(cleaned_transcript, language='textile')
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
