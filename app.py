@@ -56,7 +56,7 @@ if uploaded_file is not None:
         cleaned_transcript = clean_and_combine_transcript(original_transcript, interviewer, interviewee)
         
         with st.expander("**Cleaned Transcript**"):
-            st.text_area(value=cleaned_transcript)
+            st.write(cleaned_transcript)
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
