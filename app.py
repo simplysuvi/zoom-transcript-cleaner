@@ -57,7 +57,7 @@ if uploaded_file is not None:
         
         with st.expander("**Cleaned Transcript**"):
             st.caption("You can edit the cleaned transcript below and select all to copy it if needed.")
-            st.code(" ",cleaned_transcript, height=400, language='python')
+            st.code(cleaned_transcript, height=400, language='python')
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
