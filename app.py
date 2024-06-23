@@ -57,19 +57,6 @@ if uploaded_file is not None:
         
         with st.expander("**Cleaned Transcript**"):
             st.write(cleaned_transcript)
-            st.markdown(f"""
-                    <button onclick="copyToClipboard()">Copy to clipboard</button>
-                    <script>
-                    function copyToClipboard() {{
-                        const text = `{cleaned_transcript}`;
-                        navigator.clipboard.writeText(text).then(function() {{
-                            console.log('Copied to clipboard successfully!');
-                        }}, function(err) {{
-                            console.error('Could not copy text: ', err);
-                        }});
-                    }}
-                    </script>
-                    """, unsafe_allow_html=True)
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
