@@ -1,63 +1,106 @@
 import streamlit as st
 import re
 import os
+from io import StringIO
+from docx import Document
 
 def clean_and_combine_transcript(content, interviewer, interviewee):
-    # Regex pattern to match lines like '1\n00:00:02.890 --> 00:00:07.700\n'
-    pattern = re.compile(r'\d+\n\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}\n')
-    # Remove timestamps and response numbers
-    cleaned_content = re.sub(pattern, '', content)
+    # Regex pattern to match response number and timestamps like '421\n00:55:08.906 --> 00:55:15.509\n'
+    pattern = re.compile(r'(\d+)\n(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})\n')
 
-    # Split the cleaned content into lines
-    lines = cleaned_content.split('\n')
+    # Split content by matching the pattern
+    segments = re.split(pattern, content)
 
-    # Initialize variables to store responses
     combined_responses = []
     current_response = []
+    current_speaker = None
+    start_timestamp = None
+    end_timestamp = None
+    first_response_number = None
 
-    for line in lines:
+    # Iterate through segments, processing timestamps and text
+    for i in range(1, len(segments), 4):
+        response_number = segments[i].strip()  # e.g., '421'
+        start_time = segments[i + 1].strip()   # e.g., '00:55:08.906'
+        end_time = segments[i + 2].strip()     # e.g., '00:55:15.509'
+        line = segments[i + 3].strip()         # e.g., 'Interviewer: So what I asked was...'
+
+        # Determine the speaker and check if it's a new speaker
         if line.startswith(interviewer):
-            # When an interviewer's response is found, save the current response of the interviewee
-            if current_response:
-                combined_responses.append(f"{interviewee}: " + " ".join(current_response))
+            # If current speaker is interviewee, finalize the interviewee's response
+            if current_speaker == interviewee and current_response:
+                combined_responses.append(f"{first_response_number}\n{start_timestamp} --> {end_timestamp}\n{interviewee}: " + " ".join(current_response))
                 current_response = []
-            # Add the interviewer's response
-            combined_responses.append(line)
+
+            # Start a new block for the interviewer
+            current_speaker = interviewer
+            if not current_response:  # Set start time and response number only for the first response in the block
+                first_response_number = response_number
+                start_timestamp = start_time
+            current_response.append(line[len(interviewer) + 2:].strip())  # Capture the interviewer’s response
+            end_timestamp = end_time  # Continuously update the end time for the last response
+
         elif line.startswith(interviewee):
-            # Collect the interviewee's response
-            current_response.append(line[len(interviewee) + 2:].strip())
+            # If current speaker is interviewer, finalize the interviewer's response
+            if current_speaker == interviewer and current_response:
+                combined_responses.append(f"{first_response_number}\n{start_timestamp} --> {end_timestamp}\n{interviewer}: " + " ".join(current_response))
+                current_response = []
+
+            # Start a new block for the interviewee
+            current_speaker = interviewee
+            if not current_response:  # Set start time and response number only for the first response in the block
+                first_response_number = response_number
+                start_timestamp = start_time
+            current_response.append(line[len(interviewee) + 2:].strip())  # Capture the interviewee’s response
+            end_timestamp = end_time  # Continuously update the end time for the last response
+
         else:
-            # Append any non-empty lines to the current response
+            # Continue appending the ongoing response and update the end timestamp
             if line.strip():
                 current_response.append(line.strip())
+                end_timestamp = end_time  # Update the end time to the latest for ongoing response
 
-    # Add the last collected response of the interviewee
+    # Finalize the last response
     if current_response:
-        combined_responses.append(f"{interviewee}: " + " ".join(current_response))
+        combined_responses.append(f"{first_response_number}\n{start_timestamp} --> {end_timestamp}\n{current_speaker}: " + " ".join(current_response))
 
-    # Combine all responses into a single string
+    # Return the combined transcript
     return '\n\n'.join(combined_responses)
 
+# Function to read a DOCX file
+def read_docx(file):
+    doc = Document(file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
 
+st.set_page_config(page_title="Transcript Cleaner", page_icon=":pencil:", layout="centered")
+st.title('Transcript Cleaner')
 
-st.set_page_config(page_title="Zoom Transcript Cleaner", page_icon=":pencil:", layout="centered")
-st.title('Zoom Transcript Cleaner')
-
-uploaded_file = st.file_uploader("Upload your VTT or TXT file", type=["vtt", "txt"])
+uploaded_file = st.file_uploader("Upload your transcript file", type=["vtt", "txt", "docx"])
 
 if uploaded_file is not None:
-    interviewer = st.text_input("Enter the interviewer's name (exactly as it appears in the transcript)", "Anoushka Jagadeesh Puranik (RIT Student)")
-    interviewee = st.text_input("Enter the interviewee's name (exactly as it appears in the transcript)")
+    interviewer = "Interviewer"
+    interviewee = st.text_input("Enter the participant name (eg. P14, P15 etc.)")
     
     if st.button("**Clean Transcript**", type="primary"):
-        file_content = uploaded_file.read().decode('utf-8')
+        # Determine the file type and read the content accordingly
+        if uploaded_file.type == "text/plain" or uploaded_file.type == "text/vtt":
+            file_content = uploaded_file.read().decode('utf-8')
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            file_content = read_docx(uploaded_file)
+        else:
+            st.error("Unsupported file format.")
+            st.stop()
+        
         # Ensure newline characters are properly retained
         original_transcript = file_content.replace('\r\n', '\n').replace('\r', '\n')
         cleaned_transcript = clean_and_combine_transcript(original_transcript, interviewer, interviewee)
         
         with st.expander("**Cleaned Transcript**"):
-            st.caption("You can edit the cleaned transcript below and select all to copy it if needed.")
-            st.text_area("",cleaned_transcript, height=400)
+            st.caption("You can edit the cleaned transcript below or select all to copy.")
+            st.text_area("", cleaned_transcript, height=400)
         
         # Get the original file name and append "_cleaned"
         original_filename = uploaded_file.name
